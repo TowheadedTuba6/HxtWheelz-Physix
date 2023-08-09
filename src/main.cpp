@@ -3,6 +3,8 @@
 #include "../include/GLFW/glfw3.h"
 #include "../include/PhysicsUtils/camera.hpp"
 #include "../include/PhysicsUtils/vector3.hpp"
+#include "../include/PhysicsUtils/matrix4.hpp"
+#include "../include/PhysicsUtils/Objects/cuboid.hpp"
 
 // Updates the cameras information, (x, y, z) positions and the pitch(left, right) and yaw(up, down)
 void updateCamera(GLFWwindow* window, Camera& camera, float mouseDeltaX, float mouseDeltaY, float deltaTime) {
@@ -23,7 +25,7 @@ void updateCamera(GLFWwindow* window, Camera& camera, float mouseDeltaX, float m
 
   // Check if the user is looking around, (pitch, yaw)
   if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-    camera.look(mouseDeltaX, mouseDeltaY);
+    camera.look(mouseDeltaX, mouseDeltaY, deltaTime);
   }
 }
 
@@ -59,22 +61,42 @@ int main() {
   // Variables
   double deltaTime     = 0.0;
   double lastFrameTime = glfwGetTime();
+  const double targetFrameRate = 30.0f;
+  const double targetFrameTime = 1.0f / targetFrameRate;
+
+  // Screen related
+  int screenWidth, screenHeight;
+  float aspectRatio, fov = 60.0f;
+  float nearPlane = 0.1f, farPlane = 100.0f;
+
+  float fovRadians = fov * (3.14159265f / 180.0f);
 
   // Tracking mouse
   double lastMouseX, lastMouseY;
   glfwGetCursorPos(window, &lastMouseX, &lastMouseY);
 
   // Camera related
-  float yaw   = 0.0f;
-  float pitch = 0.0f;
-  Vector3 cameraPosition(0.0f, 0.0f, 0.0f);
-  Camera camera(cameraPosition, pitch, yaw);
+  Camera camera(Vector3(0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
+  Matrix4 cameraView;
+
+  // Cube related
+  Cuboid cube(Vector3(0.0f, 0.0f, 3.0f), 1.0f, 1.0f, 1.0f);
 
   // Rendering loop
   while (!glfwWindowShouldClose(window)) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glfwGetFramebufferSize(window, &screenWidth, &screenHeight);
+    aspectRatio = static_cast<float>(screenWidth) / static_cast<float>(screenHeight);
+
     double currentFrameTime = glfwGetTime();
     deltaTime = currentFrameTime - lastFrameTime;
     lastFrameTime = currentFrameTime;
+
+    if (deltaTime < targetFrameTime) {
+      glfwWaitEventsTimeout(targetFrameTime - deltaTime);
+      continue;
+    }
 
     double currentMouseX, currentMouseY, mouseDeltaX, mouseDeltaY;
     glfwGetCursorPos(window, &currentMouseX, &currentMouseY);
@@ -83,6 +105,9 @@ int main() {
     mouseDeltaY = currentMouseY - lastMouseY;
 
     updateCamera(window, camera, mouseDeltaX, mouseDeltaY, deltaTime);
+
+    Matrix4 cameraView = camera.getViewMatrix();
+    Matrix4 projectionMatrix = camera.getProjectionMatrix(fov, aspectRatio, nearPlane, farPlane);
 
     lastMouseX = currentMouseX;
     lastMouseY = currentMouseY;

@@ -1,6 +1,8 @@
 #ifndef VECTOR3_H
 #define VECTOR3_H
 
+#include <cmath>
+
 class Vector3 {
 public:
   float x;
@@ -23,7 +25,7 @@ public:
   }
 
   void normalize() {
-    float length = sqrt(x * x + y * y + z * z);
+    float length = std::sqrt(x * x + y * y + z * z);
     if (length > 0.0f) {
       float invLength = 1.0f / length;
       x *= invLength;
